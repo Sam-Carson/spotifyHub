@@ -1,13 +1,16 @@
 require("dotenv").config();
+
 const express = require("express");
-const port = 8888;
+const port = 3000;
 const app = express();
 const axios = require("axios");
 const querystring = require("querystring");
 
+// using dotenv (npm module), these values are read from the .env file
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
+const stateKey = "spotify_auth_state";
 
 console.log(CLIENT_ID);
 console.log(CLIENT_SECRET);
@@ -28,51 +31,53 @@ const generateRandomString = (length) => {
   return text;
 };
 
-const stateKey = "spotify_auth_state";
-
 // express app sends message when setup correctly
-app.get("/", (req, res) => {});
+app.get("/", (req, res) => {
+  data = {
+    name: "Sam",
+    last: "Carson",
+  };
+  res.send(data);
+});
 
-// handler requests authoriation from spotify
+// handler requests authorization from spotify
 app.get("/login", (req, res) => {
   const state = generateRandomString(16);
   const scope = "user-read-private user-read-email";
 
-  // sets the state and statekey state as a cookie
   res.cookie(stateKey, state);
 
-  const queryParams = querystring.stringify({
-    client_id: CLIENT_ID,
+  const usp = new URLSearchParams({
     response_type: "code",
+    client_id: CLIENT_ID,
+    scope: scope,
     redirect_uri: REDIRECT_URI,
     state: state,
-    scope: scope,
   });
+  const uspString = usp.toString();
+  console.log(usp);
 
-  // appends the necassary parameters the the URL to access spotify.
-  // REQUIRED: client_id, response_type, redirect_uri.
-  // RECOMENDED: scope, state
-  res.redirect(`https://accounts.spotify.com/authorize?${queryParams}`);
-  //   res.redirect(
-  //     `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${REDIRECT_URI}`
-  //   );
+  res.redirect(`https://accounts.spotify.com/authorize?${uspString}`);
 });
 
 // Handler uses auth code to requrest access token
 // then uses access token to request data from spotify API
 app.get("/callback", (req, res) => {
   const code = req.query.code || null;
+  const state = req.query.state || null;
 
+  const usp = new URLSearchParams({
+    code: code,
+    state: state,
+    redirect_uri: REDIRECT_URI,
+    grant_type: "authorization_code",
+  }).toString();
+
+  console.log("Here is the callback");
   axios({
     method: "post",
     url: "https://accounts.spotify.com/api/token",
-
-    data: querystring.stringify({
-      grant_type: "authorization_code",
-      code: code,
-      redirect_uri: REDIRECT_URI,
-    }),
-    //Required HTTP headers
+    data: usp,
     headers: {
       "content-type": "application/x-www-form-urlencoded",
       Authorization: `Basic ${new Buffer.from(
@@ -82,29 +87,8 @@ app.get("/callback", (req, res) => {
   })
     .then((response) => {
       if (response.status === 200) {
-        const { access_token, token_type, refresh_token } = response.data;
-
-        console.log(`token type: ${token_type}`);
-        console.log(`access token: ${access_token}`);
-        console.log(`refresh token: ${refresh_token}`);
-        // for the below get
-        // `https://localhost:8888/refresh_token?refresh_token=${refresh_token}`
-        //"https://api.spotify.com/v1/me"
-        axios
-          .get(
-            "`https://localhost:8888/refresh_token?refresh_token=${refresh_token}`",
-            {
-              headers: {
-                Authorization: `${token_type} ${access_token}`,
-              },
-            }
-          )
-          .then((response) => {
-            res.send(`<pre>${JSON.stringify(response.data, null, 2)}</pre>`);
-          })
-          .catch((error) => {
-            res.send(error);
-          });
+        console.log(response.data);
+        res.send(`<pre>${JSON.stringfiy(response.data, null, 2)}</pre>`);
       } else {
         res.send(response);
       }
@@ -117,13 +101,16 @@ app.get("/callback", (req, res) => {
 // Handler requests an access token
 app.get("/refresh_token", (req, res) => {
   const { refresh_token } = req.query;
+  const usp = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refresh_token,
+  });
+  const uspString = usp.toString();
+
   axios({
     method: "post",
     url: "https://accounts.spotify.com/api/token",
-    data: querystring.stringify({
-      grant_type: "refresh_token",
-      refresh_token: refresh_token,
-    }),
+    data: uspString,
     headers: {
       "content-type": "application/x-www-form-urlencoded",
       Authorization: `Basic ${new Buffer.from(
@@ -141,5 +128,5 @@ app.get("/refresh_token", (req, res) => {
 
 // declares what port Express is using
 app.listen(port, () => {
-  console.log(`Express app running at http://localhost:${port}`);
+  console.log(`Express app running at https://localhost:${port}`);
 });
