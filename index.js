@@ -4,7 +4,6 @@ const express = require("express");
 const port = 8888;
 const app = express();
 const axios = require("axios");
-const querystring = require("querystring");
 
 // using dotenv (npm module), these values are read from the .env file
 const CLIENT_ID = process.env.CLIENT_ID;
@@ -30,15 +29,6 @@ const generateRandomString = (length) => {
   }
   return text;
 };
-
-// express app sends message when setup correctly
-app.get("/", (req, res) => {
-  data = {
-    name: "Sam",
-    last: "Carson",
-  };
-  res.send(data);
-});
 
 // handler requests authorization from spotify
 app.get("/login", (req, res) => {
@@ -88,11 +78,12 @@ app.get("/callback", (req, res) => {
       console.log(response.status);
 
       if (response.status === 200) {
-        const { access_token, refresh_token } = response.data;
+        const { access_token, refresh_token, expires_in } = response.data;
 
         const queryParams = new URLSearchParams({
           access_token: access_token,
           refresh_token: refresh_token,
+          expires_in: expires_in,
         }).toString();
 
         // redirect to react app
