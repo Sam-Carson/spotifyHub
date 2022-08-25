@@ -64,11 +64,11 @@ app.get("/login", (req, res) => {
 // then uses access token to request data from spotify API
 app.get("/callback", (req, res) => {
   const code = req.query.code || null;
-  const state = req.query.state || null;
+  // const state = req.query.state || null;
 
   const usp = new URLSearchParams({
     code: code,
-    state: state,
+    // state: state,
     redirect_uri: REDIRECT_URI,
     grant_type: "authorization_code",
   }).toString();
@@ -86,9 +86,23 @@ app.get("/callback", (req, res) => {
     },
   })
     .then((response) => {
+      console.log(response.data);
+      console.log(response.status);
       if (response.status === 200) {
-        console.log(response.data);
-        res.send(`<pre>${JSON.stringfiy(response.data, null, 2)}</pre>`);
+        const { access_token, token_type } = response.data;
+        axios
+          .get("https://api.spotify.com/v1/me", {
+            headers: {
+              Authorization: `${token_type} ${access_token}`,
+            },
+          })
+          .then((response) => {
+            console.log(response.data);
+            res.send(`<pre>${JSON.stringify(response.data, null, 2)}</pre>`);
+          })
+          .catch((error) => {
+            res.send(error);
+          });
       } else {
         res.send(response);
       }
@@ -104,13 +118,12 @@ app.get("/refresh_token", (req, res) => {
   const usp = new URLSearchParams({
     grant_type: "refresh_token",
     refresh_token: refresh_token,
-  });
-  const uspString = usp.toString();
+  }).toString();
 
   axios({
     method: "post",
     url: "https://accounts.spotify.com/api/token",
-    data: uspString,
+    data: usp,
     headers: {
       "content-type": "application/x-www-form-urlencoded",
       Authorization: `Basic ${new Buffer.from(
