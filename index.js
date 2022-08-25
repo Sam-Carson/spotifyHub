@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
-const port = 3000;
+const port = 8888;
 const app = express();
 const axios = require("axios");
 const querystring = require("querystring");
@@ -64,11 +64,9 @@ app.get("/login", (req, res) => {
 // then uses access token to request data from spotify API
 app.get("/callback", (req, res) => {
   const code = req.query.code || null;
-  // const state = req.query.state || null;
 
   const usp = new URLSearchParams({
     code: code,
-    // state: state,
     redirect_uri: REDIRECT_URI,
     grant_type: "authorization_code",
   }).toString();
@@ -88,23 +86,20 @@ app.get("/callback", (req, res) => {
     .then((response) => {
       console.log(response.data);
       console.log(response.status);
+
       if (response.status === 200) {
-        const { access_token, token_type } = response.data;
-        axios
-          .get("https://api.spotify.com/v1/me", {
-            headers: {
-              Authorization: `${token_type} ${access_token}`,
-            },
-          })
-          .then((response) => {
-            console.log(response.data);
-            res.send(`<pre>${JSON.stringify(response.data, null, 2)}</pre>`);
-          })
-          .catch((error) => {
-            res.send(error);
-          });
+        const { access_token, refresh_token } = response.data;
+
+        const queryParams = new URLSearchParams({
+          access_token: access_token,
+          refresh_token: refresh_token,
+        }).toString();
+
+        // redirect to react app
+        res.redirect(`http://localhost:3000/?${queryParams}`);
+        // pass along tokens in query params.
       } else {
-        res.send(response);
+        res.redirect(queryParams.toString({ error: "invalid token" }));
       }
     })
     .catch((error) => {
