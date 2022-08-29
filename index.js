@@ -33,7 +33,9 @@ const generateRandomString = (length) => {
 // handler requests authorization from spotify
 app.get("/login", (req, res) => {
   const state = generateRandomString(16);
-  const scope = "user-read-private user-read-email";
+  const scope = ["user-read-private", "user-read-email", "user-top-read"].join(
+    " "
+  );
 
   res.cookie(stateKey, state);
 
