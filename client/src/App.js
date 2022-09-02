@@ -5,7 +5,14 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import GlobalStyle from "./styles/GlobalStyle";
 import styled from "styled-components/macro";
 import { logout } from "./spotify";
-import { Login, Profile, TopArtists, TopTracks } from "./pages";
+import {
+  Login,
+  Profile,
+  TopArtists,
+  TopTracks,
+  Playlists,
+  Playlist,
+} from "./pages";
 
 const StyledLogoutButton = styled.button`
   position: absolute;
@@ -73,11 +80,29 @@ function App() {
                 ></Route>
                 <Route
                   path="/playlists/:id"
-                  element={<h1>playlists:id</h1>}
+                  element={
+                    <div>
+                      <Playlist />
+                    </div>
+                  }
                 ></Route>
-                <Route path="/playlists" element={<h1>playlists</h1>}></Route>
+                <Route
+                  path="/playlists"
+                  element={
+                    <div>
+                      <Playlists />
+                    </div>
+                  }
+                ></Route>
                 <Route path="/login" element={<h1>Log in page</h1>}></Route>
-                <Route path="/" element={<Profile />}></Route>
+                <Route
+                  path="/"
+                  element={
+                    <div>
+                      <Profile />
+                    </div>
+                  }
+                ></Route>
               </Routes>
             </BrowserRouter>
           </>
